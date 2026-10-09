@@ -37,6 +37,59 @@ The container runs as uid 1000; if you bind-mount `/data` instead of using a nam
 
 Interactive API docs are served at `/docs`.
 
+### Serving over HTTPS
+
+The bridge itself speaks plain HTTP. To reach it from other machines, put a reverse proxy in front of it to handle TLS, and don't publish port 8000. Always set `API_TOKEN` when the API is reachable from outside the host.
+
+With [Caddy](https://caddyserver.com), which gets and renews a Let's Encrypt certificate on its own:
+
+```yaml
+services:
+  kia-connect-bridge:
+    image: mattlunn/kia-connect-bridge:latest
+    restart: unless-stopped
+    environment:
+      ACCOUNT_USERNAME: you@example.com
+      ACCOUNT_PASSWORD: your-password
+      ACCOUNT_PIN: "1234"
+      REGION: 1
+      BRAND: 1
+      API_TOKEN: a-long-random-string
+    volumes:
+      - kia-connect-bridge:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    command: caddy reverse-proxy --from kia.example.com --to kia-connect-bridge:8000
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - caddy:/data
+
+volumes:
+  kia-connect-bridge:
+  caddy:
+```
+
+`kia.example.com` must resolve to the host, and ports 80 and 443 must be reachable from the internet for Let's Encrypt's HTTP challenge. For a LAN-only hostname, use a DNS challenge instead. With Caddy, that needs a build that includes your DNS provider's plugin.
+
+If you already run [Traefik](https://traefik.io), add labels to the bridge instead. The entrypoint and certificate resolver names below are examples; use your own Traefik setup's:
+
+```yaml
+  kia-connect-bridge:
+    # ...as above, plus:
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.kia-connect-bridge.rule=Host(`kia.example.com`)
+      - traefik.http.routers.kia-connect-bridge.entrypoints=websecure
+      - traefik.http.routers.kia-connect-bridge.tls.certresolver=letsencrypt
+      - traefik.http.services.kia-connect-bridge.loadbalancer.server.port=8000
+```
+
+Commands can take up to about 90 seconds, so any proxy in the path needs to allow that. Caddy's and Traefik's defaults do. Cloudflare's proxy cuts requests off at 100 seconds, which is close enough to cause occasional failures.
+
 ### Configuration
 
 | Variable | Required | Default | |

@@ -1,0 +1,32 @@
+[project]
+name = "kia-connect-bridge"
+version = "0.1.0"
+description = "HTTP API wrapper around hyundai_kia_connect_api for Kia Connect / Hyundai Bluelink vehicles"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.143.0",
+    "hyundai-kia-connect-api==4.35.1",
+    "requests",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx",
+    "pytest",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

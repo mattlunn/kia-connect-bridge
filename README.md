@@ -15,7 +15,7 @@ Not affiliated with Kia, Hyundai or Genesis. The underlying API is unofficial an
 ```yaml
 services:
   kia-connect-bridge:
-    image: ghcr.io/mattlunn/kia-connect-bridge:latest
+    image: mattlunn/kia-connect-bridge:latest
     restart: unless-stopped
     environment:
       ACCOUNT_USERNAME: you@example.com

@@ -260,8 +260,8 @@ wheels = [
 
 [[package]]
 name = "hyundai-kia-connect-api"
-version = "4.35.1"
-source = { registry = "https://pypi.org/simple" }
+version = "4.35.2"
+source = { url = "https://github.com/blka/hyundai_kia_connect_api/archive/a23fb9ab78201fb0c425347f018ea72522239373.tar.gz" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "certifi" },
@@ -269,10 +269,20 @@ dependencies = [
     { name = "requests" },
     { name = "tzdata" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/55/cc134a438609731e7fe3b7e38e14cbe1ec2834606f6fd050fc5b4061030e/hyundai_kia_connect_api-4.35.1.tar.gz", hash = "sha256:c0c486d52e0a46187b99adcd64c0943bb86d383b936684f2aede96006ba6ddef", size = 367106, upload-time = "2026-10-05T16:40:34.578Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/59/30ddb104daccf4d20b448a7bbcbee573f149354985bc3e7e2e110c773bc5/hyundai_kia_connect_api-4.35.1-py3-none-any.whl", hash = "sha256:730f9790a810e61a3c3649a2b4902309ceb167fc93080d0c5882c0603b7cc7c3", size = 245075, upload-time = "2026-10-05T16:40:33.326Z" },
+sdist = { hash = "sha256:72a38d05f0056d8d45ea2f20e86a8a7e9cc865560045ecee993d7cf6975eafff" }
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.15.0" },
+    { name = "certifi", specifier = ">=2026.7.22" },
+    { name = "geopy", marker = "extra == 'google'", specifier = ">=2.2.0" },
+    { name = "numpy", marker = "extra == 'image'", specifier = ">=1.26.0" },
+    { name = "pillow", marker = "extra == 'image'", specifier = ">=10.0.0" },
+    { name = "pycryptodome", specifier = ">=3.23.0" },
+    { name = "requests" },
+    { name = "tzdata", specifier = ">=2026.4" },
 ]
+provides-extras = ["google", "image"]
 
 [[package]]
 name = "idna"
@@ -313,7 +323,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.143.0" },
-    { name = "hyundai-kia-connect-api", specifier = "==4.35.1" },
+    { name = "hyundai-kia-connect-api", url = "https://github.com/blka/hyundai_kia_connect_api/archive/a23fb9ab78201fb0c425347f018ea72522239373.tar.gz" },
     { name = "requests" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]

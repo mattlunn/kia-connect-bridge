@@ -24,7 +24,7 @@ from hyundai_kia_connect_api.exceptions import (
 )
 
 from .bridge import Bridge, create_bridge
-from .serialize import vehicle_to_json
+from .serialize import error_to_json, to_json, vehicle_to_json
 from .settings import Settings
 
 COMMANDS_WITHOUT_ARGUMENTS = [
@@ -191,6 +191,17 @@ def create_app(settings: Settings, bridge: Bridge) -> FastAPI:
     def set_navigation(vehicle_id: VehicleId, poi_list: list[POIInfo]) -> JSONResponse:
         return run_command(vehicle_id, lambda manager: manager.set_navigation(vehicle_id, poi_list))
 
+    @api.get("/status")
+    def status() -> dict[str, Any]:
+        refresh = bridge.refresh_status
+
+        return {
+            "status": "ok" if refresh.ok else "error",
+            "last_successful_at": to_json(refresh.last_successful_at),
+            "last_failed_at": to_json(refresh.last_failed_at),
+            "last_error": None if refresh.last_error is None else error_to_json(refresh.last_error),
+        }
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -198,9 +209,7 @@ def create_app(settings: Settings, bridge: Bridge) -> FastAPI:
     app.include_router(api)
 
     def error_response(status_code: int, error: Exception) -> JSONResponse:
-        return JSONResponse(
-            {"error": type(error).__name__, "detail": str(error)}, status_code=status_code
-        )
+        return JSONResponse(error_to_json(error), status_code=status_code)
 
     @app.exception_handler(RateLimitingError)
     def rate_limited(_: Request, error: RateLimitingError) -> JSONResponse:

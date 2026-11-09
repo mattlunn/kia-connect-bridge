@@ -175,6 +175,23 @@ A command takes as long as Kia and the car take to respond: typically 30–90 se
 
 **Trust `vehicle`, not `action_status`.** `action_status` is Kia's own report of the command (`SUCCESS`, `FAILED`, `TIMEOUT` or `UNKNOWN`), but at least in Europe it's usually `UNKNOWN` even when the command worked: Kia keys its command history to a push-notification device registration, which it invalidates when the bridge (not being a phone) doesn't receive the push. `vehicle` is the car's state fetched after the command, so it shows what actually happened. A definite `FAILED` returns `502`, still with the refreshed `vehicle`.
 
+### Refresh status
+
+`GET /status` reports how the background refresh is going, so you can tell fresh data from data the bridge can no longer update. It never calls Kia itself.
+
+```json
+{
+  "status": "error",
+  "last_successful_at": "2026-11-04T09:45:00+00:00",
+  "last_failed_at": "2026-11-04T15:15:52+00:00",
+  "last_error": { "error": "AuthenticationError", "detail": "..." }
+}
+```
+
+`status` is `error` if the most recent refresh failed (including when the bridge couldn't log in), and `ok` otherwise, including before the first refresh has finished. `last_failed_at` and `last_error` describe the most recent failure, and are kept after the refresh recovers. Each is `null` until it first happens. Only the background refresh updates this; `update_vehicle_with_cached_state`, `force_refresh_vehicle_state` and commands report their own errors directly.
+
+This is different from two timestamps on each vehicle: `last_updated_at` is when the car last reported to Kia, and `last_scanned_at` is when the library last *tried* to fetch it, whether or not that worked.
+
 ### Errors
 
 | Status | When |

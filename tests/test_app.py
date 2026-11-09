@@ -1,15 +1,18 @@
 import dataclasses
+import datetime as dt
 
 from fastapi.testclient import TestClient
 from hyundai_kia_connect_api import ClimateRequestOptions, WindowRequestOptions
 from hyundai_kia_connect_api.const import ORDER_STATUS, WINDOW_STATE
 from hyundai_kia_connect_api.exceptions import (
     APIError,
+    AuthenticationError,
     DuplicateRequestError,
     RateLimitingError,
 )
 
 from kia_connect_bridge.app import create_app
+from kia_connect_bridge.bridge import RefreshStatus
 
 from .conftest import VEHICLE_ID
 
@@ -133,3 +136,39 @@ def test_api_token_is_required_when_set(settings, bridge):
     assert client.get("/vehicles", headers={"Authorization": "Bearer wrong"}).status_code == 401
     assert client.get("/vehicles", headers={"Authorization": "Bearer secret"}).status_code == 200
     assert client.get("/health").status_code == 200
+
+
+def test_status_is_ok_before_any_refresh(client):
+    assert client.get("/status").json() == {
+        "status": "ok",
+        "last_successful_at": None,
+        "last_failed_at": None,
+        "last_error": None,
+    }
+
+
+def test_status_reports_the_last_refresh_failure(client, bridge):
+    failed_at = dt.datetime(2026, 11, 4, 15, 15, 52, tzinfo=dt.UTC)
+    bridge.refresh_status = RefreshStatus(
+        ok=False,
+        last_successful_at=dt.datetime(2026, 11, 4, 9, 45, tzinfo=dt.UTC),
+        last_failed_at=failed_at,
+        last_error=AuthenticationError("Token expired"),
+    )
+
+    response = client.get("/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "error",
+        "last_successful_at": "2026-11-04T09:45:00+00:00",
+        "last_failed_at": "2026-11-04T15:15:52+00:00",
+        "last_error": {"error": "AuthenticationError", "detail": "Token expired"},
+    }
+
+
+def test_status_requires_the_api_token(settings, bridge):
+    client = TestClient(create_app(dataclasses.replace(settings, api_token="secret"), bridge))
+
+    assert client.get("/status").status_code == 401
+    assert client.get("/status", headers={"Authorization": "Bearer secret"}).status_code == 200

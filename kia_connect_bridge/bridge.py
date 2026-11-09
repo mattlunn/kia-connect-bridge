@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 class RefreshStatus:
     # Assume all is well until a refresh says otherwise.
     ok: bool = True
-    last_successful_at: dt.datetime | None = None
-    last_failed_at: dt.datetime | None = None
+    last_success_at: dt.datetime | None = None
+    last_error_at: dt.datetime | None = None
     last_error: Exception | None = None
 
 
@@ -63,11 +63,11 @@ class Bridge:
             except Exception as error:
                 logger.exception("Refreshing cached vehicle state failed")
                 self.refresh_status = dataclasses.replace(
-                    self.refresh_status, ok=False, last_failed_at=_now(), last_error=error
+                    self.refresh_status, ok=False, last_error_at=_now(), last_error=error
                 )
             else:
                 self.refresh_status = dataclasses.replace(
-                    self.refresh_status, ok=True, last_successful_at=_now()
+                    self.refresh_status, ok=True, last_success_at=_now()
                 )
 
             if interval_minutes <= 0 or stop.wait(interval_minutes * 60):

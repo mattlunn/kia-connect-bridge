@@ -141,8 +141,8 @@ def test_api_token_is_required_when_set(settings, bridge):
 def test_status_is_ok_before_any_refresh(client):
     assert client.get("/status").json() == {
         "status": "ok",
-        "last_successful_at": None,
-        "last_failed_at": None,
+        "last_success_at": None,
+        "last_error_at": None,
         "last_error": None,
     }
 
@@ -151,8 +151,8 @@ def test_status_reports_the_last_refresh_failure(client, bridge):
     failed_at = dt.datetime(2026, 11, 4, 15, 15, 52, tzinfo=dt.UTC)
     bridge.refresh_status = RefreshStatus(
         ok=False,
-        last_successful_at=dt.datetime(2026, 11, 4, 9, 45, tzinfo=dt.UTC),
-        last_failed_at=failed_at,
+        last_success_at=dt.datetime(2026, 11, 4, 9, 45, tzinfo=dt.UTC),
+        last_error_at=failed_at,
         last_error=AuthenticationError("Token expired"),
     )
 
@@ -161,8 +161,8 @@ def test_status_reports_the_last_refresh_failure(client, bridge):
     assert response.status_code == 200
     assert response.json() == {
         "status": "error",
-        "last_successful_at": "2026-11-04T09:45:00+00:00",
-        "last_failed_at": "2026-11-04T15:15:52+00:00",
+        "last_success_at": "2026-11-04T09:45:00+00:00",
+        "last_error_at": "2026-11-04T15:15:52+00:00",
         "last_error": {"error": "AuthenticationError", "detail": "Token expired"},
     }
 

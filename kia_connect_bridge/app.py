@@ -197,8 +197,8 @@ def create_app(settings: Settings, bridge: Bridge) -> FastAPI:
 
         return {
             "status": "ok" if refresh.ok else "error",
-            "last_successful_at": to_json(refresh.last_successful_at),
-            "last_failed_at": to_json(refresh.last_failed_at),
+            "last_success_at": to_json(refresh.last_success_at),
+            "last_error_at": to_json(refresh.last_error_at),
             "last_error": None if refresh.last_error is None else error_to_json(refresh.last_error),
         }
 

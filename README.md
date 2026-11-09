@@ -182,13 +182,13 @@ A command takes as long as Kia and the car take to respond: typically 30–90 se
 ```json
 {
   "status": "error",
-  "last_successful_at": "2026-11-04T09:45:00+00:00",
-  "last_failed_at": "2026-11-04T15:15:52+00:00",
+  "last_success_at": "2026-11-04T09:45:00+00:00",
+  "last_error_at": "2026-11-04T15:15:52+00:00",
   "last_error": { "error": "AuthenticationError", "detail": "..." }
 }
 ```
 
-`status` is `error` if the most recent refresh failed (including when the bridge couldn't log in), and `ok` otherwise, including before the first refresh has finished. `last_failed_at` and `last_error` describe the most recent failure, and are kept after the refresh recovers. Each is `null` until it first happens. Only the background refresh updates this; `update_vehicle_with_cached_state`, `force_refresh_vehicle_state` and commands report their own errors directly.
+`status` is `error` if the most recent refresh failed (including when the bridge couldn't log in), and `ok` otherwise, including before the first refresh has finished. `last_error` and `last_error_at` describe the most recent failure, and are kept after the refresh recovers. Each is `null` until it first happens. Only the background refresh updates this; `update_vehicle_with_cached_state`, `force_refresh_vehicle_state` and commands report their own errors directly.
 
 This is different from two timestamps on each vehicle: `last_updated_at` is when the car last reported to Kia, and `last_scanned_at` is when the library last *tried* to fetch it, whether or not that worked.
 

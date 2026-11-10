@@ -15,7 +15,7 @@ Not affiliated with Kia, Hyundai or Genesis. The underlying API is unofficial an
 ```yaml
 services:
   kia-connect-bridge:
-    image: mattlunn/kia-connect-bridge:latest
+    image: mattlunn/kia-connect-bridge:1
     restart: unless-stopped
     environment:
       ACCOUNT_USERNAME: you@example.com
@@ -37,6 +37,18 @@ The container runs as uid 1000; if you bind-mount `/data` instead of using a nam
 
 Interactive API docs are served at `/docs`.
 
+### Versions
+
+Releases follow [semantic versioning](https://semver.org), and each is published to Docker Hub under several tags:
+
+| Tag | Points to |
+|---|---|
+| `1.0.1` | That exact release. |
+| `1` | The newest `1.x.x` release. Gets fixes and new features, but never breaking changes. |
+| `latest` | The newest release of all, including major versions with breaking changes. |
+
+Use the major version tag (`mattlunn/kia-connect-bridge:1`) so you get fixes, such as library upgrades for changes to Kia's and Hyundai's API, without breaking changes arriving unannounced. Each release's notes, including which version of the library it ships with, are on the [releases page](https://github.com/mattlunn/kia-connect-bridge/releases).
+
 ### Serving over HTTPS
 
 The bridge itself speaks plain HTTP. To reach it from other machines, put a reverse proxy in front of it to handle TLS, and don't publish port 8000. Always set `API_TOKEN` when the API is reachable from outside the host.
@@ -46,7 +58,7 @@ With [Caddy](https://caddyserver.com), which gets and renews a Let's Encrypt cer
 ```yaml
 services:
   kia-connect-bridge:
-    image: mattlunn/kia-connect-bridge:latest
+    image: mattlunn/kia-connect-bridge:1
     restart: unless-stopped
     environment:
       ACCOUNT_USERNAME: you@example.com
@@ -188,3 +200,16 @@ ACCOUNT_USERNAME=... ACCOUNT_PASSWORD=... ACCOUNT_PIN=... REGION=1 BRAND=1 DATA_
 ```
 
 The library version is pinned in `pyproject.toml`; Dependabot proposes upgrades as the library ships fixes for Kia's and Hyundai's API changes.
+
+### Releasing
+
+Every merge to `main` is released. Each pull request needs exactly one of these labels, which a required check enforces:
+
+| Label | Release |
+|---|---|
+| `release:major` | Breaking changes: `1.4.2` → `2.0.0` |
+| `release:minor` | New features: `1.4.2` → `1.5.0` |
+| `release:patch` | Fixes and dependency upgrades: `1.4.2` → `1.4.3` |
+| `release:none` | No release (docs, CI). Picked up by the next release. |
+
+On merge, CI bumps the newest `vX.Y.Z` tag by the largest label among the pull requests merged since that release, pushes the Docker tags, and creates a GitHub release with notes generated from those pull requests' titles, grouped by label (see `.github/release.yml`). The `version` in `pyproject.toml` isn't used. Dependabot labels its own pull requests.

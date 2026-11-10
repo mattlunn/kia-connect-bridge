@@ -1,0 +1,14 @@
+changelog:
+  exclude:
+    labels: [release:none]
+  categories:
+    - title: Breaking changes
+      labels: [release:major]
+    - title: Features
+      labels: [release:minor]
+    - title: Dependencies
+      labels: [dependencies]
+    - title: Fixes
+      labels: [release:patch]
+    - title: Other changes
+      labels: ["*"]

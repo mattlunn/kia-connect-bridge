@@ -49,6 +49,20 @@ Releases follow [semantic versioning](https://semver.org), and each is published
 
 Use the major version tag (`mattlunn/kia-connect-bridge:2`) so you get fixes, such as library upgrades for changes to Kia's and Hyundai's API, without breaking changes arriving unannounced. Each release's notes, including which version of the library it ships with, are on the [releases page](https://github.com/mattlunn/kia-connect-bridge/releases).
 
+### Using a different library version
+
+When Kia or Hyundai change their API, a fix usually lands in [hyundai_kia_connect_api](https://github.com/Hyundai-Kia-Connect/hyundai_kia_connect_api) first. To use it without waiting for a bridge release, set `HYUNDAI_KIA_CONNECT_API_VERSION`:
+
+| Value | Installs |
+|---|---|
+| `4.50.0` | That version from PyPI. |
+| `latest` | The newest version on PyPI each time the container starts. |
+| A URL, e.g. `https://github.com/<fork>/hyundai_kia_connect_api/archive/<commit>.tar.gz` | That archive, such as a fork with an unreleased fix. |
+
+The container installs it when it starts, which takes a few seconds and needs PyPI (or the URL) to be reachable. If the install fails, the container exits rather than running a version you didn't ask for. The version in use is logged at startup.
+
+This is unsupported: each bridge release is only tested with the version it ships with, and the vehicle fields in responses come straight from the library, so a different version, especially a new major one, can break the bridge or change its responses. Remove the variable once a bridge release ships the version you need.
+
 ### Serving over HTTPS
 
 The bridge itself speaks plain HTTP. To reach it from other machines, put a reverse proxy in front of it to handle TLS, and don't publish port 8000. Always set `API_TOKEN` when the API is reachable from outside the host.
@@ -116,6 +130,7 @@ Commands can take up to about 90 seconds, so any proxy in the path needs to allo
 | `REFRESH_INTERVAL_MINUTES` | | `10` | How often to fetch Kia's cached state. `0` fetches once at startup only. |
 | `ACTION_TIMEOUT_SECONDS` | | `60` | How long a command waits for Kia to report its outcome before refreshing anyway. |
 | `DATA_DIR` | | `/data` | Where the login token is kept. |
+| `HYUNDAI_KIA_CONNECT_API_VERSION` | | | Use this version of the library instead of the one the release ships with. See [Using a different library version](#using-a-different-library-version). |
 
 Regions other than Kia Europe haven't been tested with the bridge. They use the same library calls, so they should work wherever the library supports them.
 

@@ -7,7 +7,7 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.143.0",
-    "hyundai-kia-connect-api==4.42.0",
+    "hyundai-kia-connect-api==5.1.0",
     "requests",
     "uvicorn==0.54.0",
 ]

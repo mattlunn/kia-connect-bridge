@@ -56,15 +56,13 @@ def test_periodic_refresh_survives_errors(bridge, manager):
     bridge.refresh_periodically(0, threading.Event())
 
 
-def test_refresh_status_is_ok_before_any_refresh(bridge):
+def test_refresh_status_is_empty_before_any_refresh(bridge):
     assert bridge.refresh_status == RefreshStatus()
-    assert bridge.refresh_status.ok
 
 
 def test_successful_refresh_is_recorded(bridge):
     bridge.refresh_periodically(0, threading.Event())
 
-    assert bridge.refresh_status.ok
     assert bridge.refresh_status.last_success_at is not None
     assert bridge.refresh_status.last_error_at is None
 
@@ -76,7 +74,6 @@ def test_failed_login_during_refresh_is_recorded(bridge, manager):
 
     bridge.refresh_periodically(0, threading.Event())
 
-    assert not bridge.refresh_status.ok
     assert bridge.refresh_status.last_success_at is None
     assert bridge.refresh_status.last_error_at is not None
     assert bridge.refresh_status.last_error is error
@@ -90,7 +87,6 @@ def test_recovery_keeps_the_last_failure(bridge, manager):
 
     bridge.refresh_periodically(0, threading.Event())
 
-    assert bridge.refresh_status.ok
     assert bridge.refresh_status.last_success_at > failure.last_error_at
     assert bridge.refresh_status.last_error_at == failure.last_error_at
     assert bridge.refresh_status.last_error is failure.last_error

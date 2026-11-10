@@ -22,7 +22,7 @@ def vehicle_to_json(vehicle: Vehicle) -> dict[str, Any]:
 
 
 def error_to_json(error: Exception) -> dict[str, str]:
-    return {"error": type(error).__name__, "detail": str(error)}
+    return {"type": type(error).__name__, "detail": str(error)}
 
 
 def to_json(value: Any) -> Any:

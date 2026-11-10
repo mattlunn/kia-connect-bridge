@@ -1,15 +1,18 @@
 import dataclasses
+import datetime as dt
 
 from fastapi.testclient import TestClient
 from hyundai_kia_connect_api import ClimateRequestOptions, WindowRequestOptions
 from hyundai_kia_connect_api.const import ORDER_STATUS, WINDOW_STATE
 from hyundai_kia_connect_api.exceptions import (
     APIError,
+    AuthenticationError,
     DuplicateRequestError,
     RateLimitingError,
 )
 
 from kia_connect_bridge.app import create_app
+from kia_connect_bridge.bridge import RefreshStatus
 
 from .conftest import VEHICLE_ID
 
@@ -20,7 +23,7 @@ def test_lists_vehicles_with_library_names(client, manager):
     response = client.get("/vehicles")
 
     assert response.status_code == 200
-    [vehicle] = response.json()
+    [vehicle] = response.json()["data"]
     assert vehicle["id"] == VEHICLE_ID
     assert vehicle["VIN"] == "VIN123"
     assert vehicle["ev_battery_percentage"] == 34
@@ -30,7 +33,10 @@ def test_lists_vehicles_with_library_names(client, manager):
 
 
 def test_unknown_vehicle_is_404(client):
-    assert client.get("/vehicles/nope").status_code == 404
+    response = client.get("/vehicles/nope")
+
+    assert response.status_code == 404
+    assert response.json()["error"] == {"type": "UnknownVehicle", "detail": "Unknown vehicle nope"}
     assert client.post("/vehicles/nope/start_charge").status_code == 404
 
 
@@ -38,7 +44,7 @@ def test_command_waits_for_the_action_then_refreshes(client, manager):
     response = client.post(f"/vehicles/{VEHICLE_ID}/start_charge")
 
     assert response.status_code == 200
-    body = response.json()
+    body = response.json()["data"]
     assert body["action_id"] == "action-start_charge"
     assert body["action_status"] == "SUCCESS"
     assert body["vehicle"]["ev_battery_percentage"] == 80
@@ -55,7 +61,7 @@ def test_unknown_action_status_still_succeeds(client, manager):
     response = client.post(f"/vehicles/{VEHICLE_ID}/stop_charge")
 
     assert response.status_code == 200
-    assert response.json()["action_status"] == "UNKNOWN"
+    assert response.json()["data"]["action_status"] == "UNKNOWN"
 
 
 def test_failed_action_is_502_with_refreshed_vehicle(client, manager):
@@ -64,7 +70,8 @@ def test_failed_action_is_502_with_refreshed_vehicle(client, manager):
     response = client.post(f"/vehicles/{VEHICLE_ID}/lock")
 
     assert response.status_code == 502
-    assert response.json()["vehicle"]["ev_battery_percentage"] == 80
+    assert response.json()["data"]["vehicle"]["ev_battery_percentage"] == 80
+    assert response.json()["error"] is None
 
 
 def test_start_climate_passes_library_options(client, manager):
@@ -102,12 +109,15 @@ def test_invalid_body_is_422(client):
     response = client.post(f"/vehicles/{VEHICLE_ID}/start_climate", json={"set_temp": "hot"})
 
     assert response.status_code == 422
+    assert response.json()["data"] is None
+    assert response.json()["error"]["type"] == "RequestValidationError"
+    assert "set_temp" in response.json()["error"]["detail"]
 
 
 def test_check_action_status(client, manager):
     response = client.get(f"/vehicles/{VEHICLE_ID}/actions/abc?synchronous=true&timeout=5")
 
-    assert response.json() == {"action_status": "SUCCESS"}
+    assert response.json()["data"] == {"action_status": "SUCCESS"}
     assert manager.calls == [("check_action_status", VEHICLE_ID, "abc", True, 5)]
 
 
@@ -123,13 +133,83 @@ def test_library_errors_map_to_http_statuses(client, manager):
         response = client.post(f"/vehicles/{VEHICLE_ID}/start_charge")
 
         assert response.status_code == status_code
-        assert response.json() == {"error": type(error).__name__, "detail": str(error)}
+        assert response.json()["data"] is None
+        assert response.json()["error"] == {"type": type(error).__name__, "detail": str(error)}
+
+
+def test_responses_are_wrapped_in_the_envelope(client):
+    assert client.get("/vehicles").json().keys() == {
+        "data",
+        "error",
+        "last_success_at",
+        "last_error_at",
+        "last_error",
+    }
+
+
+def test_refresh_is_null_before_any_refresh(client):
+    body = client.get("/vehicles").json()
+
+    assert body["error"] is None
+    assert body["last_success_at"] is None
+    assert body["last_error_at"] is None
+    assert body["last_error"] is None
+
+
+def test_every_response_reports_the_last_refresh(client, bridge, manager):
+    bridge.refresh_status = RefreshStatus(
+        last_success_at=dt.datetime(2026, 11, 4, 9, 45, tzinfo=dt.UTC),
+        last_error_at=dt.datetime(2026, 11, 4, 15, 15, 52, tzinfo=dt.UTC),
+        last_error=AuthenticationError("Token expired"),
+    )
+    manager.error = RateLimitingError("Exceeds number of requests")
+    refresh = {
+        "last_success_at": "2026-11-04T09:45:00+00:00",
+        "last_error_at": "2026-11-04T15:15:52+00:00",
+        "last_error": {"type": "AuthenticationError", "detail": "Token expired"},
+    }
+
+    for response in [
+        client.get("/vehicles"),
+        client.get("/vehicles/nope"),
+        client.post(f"/vehicles/{VEHICLE_ID}/lock"),
+    ]:
+        assert {key: response.json()[key] for key in refresh} == refresh
+
+
+def test_unknown_path_uses_the_envelope(client):
+    response = client.get("/nope")
+
+    assert response.status_code == 404
+    assert response.json()["error"] == {"type": "HTTPException", "detail": "404: Not Found"}
+
+
+def test_unexpected_errors_are_500_with_the_envelope(settings, bridge, manager):
+    client = TestClient(create_app(settings, bridge), raise_server_exceptions=False)
+    manager.error = KeyError("ev_battery_percentage")
+
+    response = client.post(f"/vehicles/{VEHICLE_ID}/start_charge")
+
+    assert response.status_code == 500
+    assert response.json()["error"] == {"type": "KeyError", "detail": "'ev_battery_percentage'"}
+
+
+def test_health_is_not_wrapped(client):
+    assert client.get("/health").json() == {"status": "ok"}
 
 
 def test_api_token_is_required_when_set(settings, bridge):
     client = TestClient(create_app(dataclasses.replace(settings, api_token="secret"), bridge))
 
-    assert client.get("/vehicles").status_code == 401
+    response = client.get("/vehicles")
+
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+    assert response.json()["error"] == {
+        "type": "Unauthorized",
+        "detail": "Missing or invalid API token",
+    }
+    assert "last_error" in response.json()
     assert client.get("/vehicles", headers={"Authorization": "Bearer wrong"}).status_code == 401
     assert client.get("/vehicles", headers={"Authorization": "Bearer secret"}).status_code == 200
     assert client.get("/health").status_code == 200

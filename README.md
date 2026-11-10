@@ -15,7 +15,7 @@ Not affiliated with Kia, Hyundai or Genesis. The underlying API is unofficial an
 ```yaml
 services:
   kia-connect-bridge:
-    image: mattlunn/kia-connect-bridge:1
+    image: mattlunn/kia-connect-bridge:2
     restart: unless-stopped
     environment:
       ACCOUNT_USERNAME: you@example.com
@@ -47,7 +47,7 @@ Releases follow [semantic versioning](https://semver.org), and each is published
 | `1` | The newest `1.x.x` release. Gets fixes and new features, but never breaking changes. |
 | `latest` | The newest release of all, including major versions with breaking changes. |
 
-Use the major version tag (`mattlunn/kia-connect-bridge:1`) so you get fixes, such as library upgrades for changes to Kia's and Hyundai's API, without breaking changes arriving unannounced. Each release's notes, including which version of the library it ships with, are on the [releases page](https://github.com/mattlunn/kia-connect-bridge/releases).
+Use the major version tag (`mattlunn/kia-connect-bridge:2`) so you get fixes, such as library upgrades for changes to Kia's and Hyundai's API, without breaking changes arriving unannounced. Each release's notes, including which version of the library it ships with, are on the [releases page](https://github.com/mattlunn/kia-connect-bridge/releases).
 
 ### Serving over HTTPS
 
@@ -58,7 +58,7 @@ With [Caddy](https://caddyserver.com), which gets and renews a Let's Encrypt cer
 ```yaml
 services:
   kia-connect-bridge:
-    image: mattlunn/kia-connect-bridge:1
+    image: mattlunn/kia-connect-bridge:2
     restart: unless-stopped
     environment:
       ACCOUNT_USERNAME: you@example.com
@@ -112,7 +112,7 @@ Commands can take up to about 90 seconds, so any proxy in the path needs to allo
 | `REGION` | ✔ | | `1` Europe, `2` Canada, `3` USA, `4` China, `5` Australia, `6` India, `7` New Zealand, `8` Brazil, `9` Europe (CCI/GSPA) |
 | `BRAND` | ✔ | | `1` Kia, `2` Hyundai, `3` Genesis |
 | `LANGUAGE` | | `en` | |
-| `API_TOKEN` | | | When set, every endpoint except `/health` requires `Authorization: Bearer <API_TOKEN>`. Leave unset only on a network you trust: the API exposes your car's location and can unlock it. |
+| `API_TOKEN` | | | When set, every endpoint except `/health` requires `Authorization: Bearer <API_TOKEN>`. Leave unset only on a network you trust: the API exposes your car's location and can unlock it. The `401` returned without it still includes the background refresh's [`last_*` fields](#responses). |
 | `REFRESH_INTERVAL_MINUTES` | | `10` | How often to fetch Kia's cached state. `0` fetches once at startup only. |
 | `ACTION_TIMEOUT_SECONDS` | | `60` | How long a command waits for Kia to report its outcome before refreshing anyway. |
 | `DATA_DIR` | | `/data` | Where the login token is kept. |
@@ -127,6 +127,26 @@ Kia and Hyundai limit how many requests an account can make per day, and don't p
 
 `vehicle_id` is the library's `Vehicle.id`, listed by `GET /vehicles`.
 
+### Responses
+
+Every response except `/health` has the same five keys:
+
+```json
+{
+  "data": [{ "VIN": "...", "ev_battery_percentage": 80, "...": "..." }],
+  "error": null,
+  "last_success_at": "2026-11-04T09:45:00+00:00",
+  "last_error_at": "2026-11-04T15:15:52+00:00",
+  "last_error": { "type": "AuthenticationError", "detail": "..." }
+}
+```
+
+- `data` is what the endpoint returns, described below. It's `null` when the request fails.
+- `error` is `null`, or `{"type": "<exception class>", "detail": "<message>"}` when the request fails.
+- `last_success_at`, `last_error_at` and `last_error` report the background refresh, so you can tell fresh data from data the bridge can no longer update, for example because it can no longer log in. `last_error` describes the most recent failed refresh, in the same shape as `error`. Each is `null` until it first happens, and the failure is kept after the refresh recovers. The refresh is failing if `last_error_at` is later than `last_success_at`, or `last_success_at` is `null` and `last_error_at` isn't. Only the background refresh updates these; the other endpoints report their own failures in `error`.
+
+Don't confuse these with two timestamps on each vehicle: `last_updated_at` is when the car last reported to Kia, and `last_scanned_at` is when the library last *tried* to fetch it, whether or not that worked.
+
 ### Reading state
 
 | Endpoint | Library call | |
@@ -139,7 +159,7 @@ Kia and Hyundai limit how many requests an account can make per day, and don't p
 | `POST /vehicles/{vehicle_id}/update_month_trip_info` `{"yyyymm_string": "202610"}` | same | Populates `month_trip_info`. |
 | `GET /vehicles/{vehicle_id}/actions/{action_id}?synchronous=false&timeout=120` | `check_action_status` | |
 
-Each returns the vehicle as JSON: every public field and property of the library's [`Vehicle`](https://github.com/Hyundai-Kia-Connect/hyundai_kia_connect_api/blob/master/hyundai_kia_connect_api/Vehicle.py), e.g. `ev_battery_percentage`, `ev_battery_is_charging`, `odometer` + `odometer_unit`, `air_control_is_on`, `is_locked`. Datetimes are ISO 8601 and enums are their values. Two library quirks to be aware of: `location` is `[longitude, latitude]` (use `location_latitude` / `location_longitude` to avoid the ambiguity), and some flags documented as booleans are integers (`air_control_is_on` can be e.g. `10` while running).
+Each returns the vehicle as `data` (`GET /vehicles` a list of them, and the action status check `{"action_status": "SUCCESS"}`): every public field and property of the library's [`Vehicle`](https://github.com/Hyundai-Kia-Connect/hyundai_kia_connect_api/blob/master/hyundai_kia_connect_api/Vehicle.py), e.g. `ev_battery_percentage`, `ev_battery_is_charging`, `odometer` + `odometer_unit`, `air_control_is_on`, `is_locked`. Datetimes are ISO 8601 and enums are their values. Two library quirks to be aware of: `location` is `[longitude, latitude]` (use `location_latitude` / `location_longitude` to avoid the ambiguity), and some flags documented as booleans are integers (`air_control_is_on` can be e.g. `10` while running).
 
 ### Commands
 
@@ -163,7 +183,7 @@ Each returns the vehicle as JSON: every public field and property of the library
 
 Which commands a car accepts depends on the region and model. Commands the library doesn't implement for your region return `501`; ones Kia or the car reject return `502`.
 
-A command takes as long as Kia and the car take to respond: typically 30–90 seconds. Set your HTTP client's timeout to at least two minutes. The response is:
+A command takes as long as Kia and the car take to respond: typically 30–90 seconds. Set your HTTP client's timeout to at least two minutes. The response's `data` is:
 
 ```json
 {
@@ -187,7 +207,15 @@ A command takes as long as Kia and the car take to respond: typically 30–90 se
 | `501` | The library doesn't implement that command for your region. |
 | `502` | Kia or the library reported an error, or the command `FAILED`. |
 
-Errors from Kia or the library have the body `{"error": "<exception class>", "detail": "<message>"}`.
+Anything else is a `500`. Every error has the body described in [Responses](#responses), with `data` set to `null` and `error` to the exception's class and message, e.g. `{"type": "RateLimitingError", "detail": "..."}`. The exception is a `FAILED` command, which returns its `data` with `error` set to `null`, as it does when it succeeds.
+
+### Migrating from 1.x
+
+Version 2 wraps every response except `/health` in the envelope described in [Responses](#responses):
+
+- Read what 1.x returned from `data`, e.g. `response["data"][0]` rather than `response[0]` for `GET /vehicles`.
+- Errors that were `{"error": "<class>", "detail": "<message>"}` are now in `error` as `{"type": "<class>", "detail": "<message>"}`. `401`, `404`, `422` and `500` responses, which had other shapes, use the same envelope too.
+- The new `last_*` fields report the background refresh.
 
 ## Development
 

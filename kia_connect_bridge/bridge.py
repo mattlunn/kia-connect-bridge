@@ -1,3 +1,5 @@
+import dataclasses
+import datetime as dt
 import json
 import logging
 import os
@@ -14,6 +16,13 @@ from .settings import Settings
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass(frozen=True)
+class RefreshStatus:
+    last_success_at: dt.datetime | None = None
+    last_error_at: dt.datetime | None = None
+    last_error: Exception | None = None
+
+
 class Bridge:
     def __init__(self, manager: VehicleManager, token_path: Path):
         self.manager = manager
@@ -21,6 +30,8 @@ class Bridge:
         self._saved_token: str | None = None
         # The library isn't thread-safe, and Kia rejects overlapping commands anyway.
         self._lock = threading.Lock()
+        # Replaced rather than mutated, so readers on other threads see a consistent snapshot.
+        self.refresh_status = RefreshStatus()
 
     def call[T](self, fn: Callable[[VehicleManager], T]) -> T:
         with self._lock:
@@ -47,8 +58,15 @@ class Bridge:
         while True:
             try:
                 self.call(lambda manager: manager.update_all_vehicles_with_cached_state())
-            except Exception:
+            except Exception as error:
                 logger.exception("Refreshing cached vehicle state failed")
+                self.refresh_status = dataclasses.replace(
+                    self.refresh_status, last_error_at=_now(), last_error=error
+                )
+            else:
+                self.refresh_status = dataclasses.replace(
+                    self.refresh_status, last_success_at=_now()
+                )
 
             if interval_minutes <= 0 or stop.wait(interval_minutes * 60):
                 return
@@ -79,6 +97,10 @@ class Bridge:
             file.write(data)
 
         self._saved_token = data
+
+
+def _now() -> dt.datetime:
+    return dt.datetime.now(dt.UTC)
 
 
 def load_token(token_path: Path, username: str) -> Token | None:

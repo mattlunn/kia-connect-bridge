@@ -21,6 +21,10 @@ def vehicle_to_json(vehicle: Vehicle) -> dict[str, Any]:
     return {name: to_json(getattr(vehicle, name)) for name in sorted(names + VEHICLE_PROPERTIES)}
 
 
+def error_to_json(error: Exception) -> dict[str, str]:
+    return {"type": type(error).__name__, "detail": str(error)}
+
+
 def to_json(value: Any) -> Any:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return {

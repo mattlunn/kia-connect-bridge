@@ -294,7 +294,7 @@ wheels = [
 
 [[package]]
 name = "kia-connect-bridge"
-version = "0.1.0"
+version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },

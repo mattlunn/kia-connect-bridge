@@ -4,11 +4,14 @@ updates:
     directory: /
     schedule:
       interval: daily
+    labels: [dependencies, release:patch]
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    labels: [dependencies, release:patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    labels: [dependencies, release:none]

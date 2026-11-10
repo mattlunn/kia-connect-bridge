@@ -1,6 +1,7 @@
 [project]
 name = "kia-connect-bridge"
-version = "0.1.0"
+# Unused: releases are versioned by their git tag. See "Versions" in the README.
+version = "0.0.0"
 description = "HTTP API wrapper around hyundai_kia_connect_api for Kia Connect / Hyundai Bluelink vehicles"
 readme = "README.md"
 license = "MIT"

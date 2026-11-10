@@ -1,0 +1,22 @@
+name: Release label
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+permissions: {}
+
+jobs:
+  release-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require exactly one release label
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          count=$(jq '[.[] | select(IN("release:major", "release:minor", "release:patch", "release:none"))] | length' <<< "$LABELS")
+
+          if [ "$count" -ne 1 ]; then
+            echo "::error::Add exactly one of the labels release:major, release:minor, release:patch or release:none."
+            exit 1
+          fi

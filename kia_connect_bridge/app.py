@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 import secrets
 import threading
@@ -28,6 +29,8 @@ from starlette.exceptions import HTTPException
 from .bridge import Bridge, create_bridge
 from .serialize import error_to_json, to_json, vehicle_to_json
 from .settings import Settings
+
+logger = logging.getLogger(__name__)
 
 COMMANDS_WITHOUT_ARGUMENTS = [
     "start_charge",
@@ -272,5 +275,8 @@ def create_app(settings: Settings, bridge: Bridge) -> FastAPI:
 def main() -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     settings = Settings.from_env()
+    logger.info(
+        "Using hyundai_kia_connect_api %s", importlib.metadata.version("hyundai_kia_connect_api")
+    )
 
     return create_app(settings, create_bridge(settings))

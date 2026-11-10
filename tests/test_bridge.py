@@ -27,7 +27,9 @@ def test_resaves_the_token_when_it_rotates(bridge, manager, settings):
 
 def test_ignores_a_saved_token_for_another_account(tmp_path):
     token_path = tmp_path / "token.json"
-    token_path.write_text(json.dumps(Token(username="someone@else.com").to_dict()))
+    token_path.write_text(
+        json.dumps(Token(username="someone@else.com", password="password").to_dict())
+    )
 
     assert load_token(token_path, "user@example.com") is None
     assert load_token(token_path, "someone@else.com").username == "someone@else.com"

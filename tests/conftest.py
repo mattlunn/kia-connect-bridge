@@ -28,7 +28,9 @@ class FakeManager:
 
         if self.token is None:
             self.calls.append(("login",))
-            self.token = Token(username="user@example.com", refresh_token="refresh-1")
+            self.token = Token(
+                username="user@example.com", password="password", refresh_token="refresh-1"
+            )
 
         if not self.vehicles:
             self.vehicles[VEHICLE_ID] = Vehicle(id=VEHICLE_ID, name="EV6", VIN="VIN123")

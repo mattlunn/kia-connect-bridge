@@ -4,7 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
 
-permissions: {}
+permissions:
+  pull-requests: read
 
 jobs:
   release-label:
@@ -12,9 +13,14 @@ jobs:
     steps:
       - name: Require exactly one release label
         env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        # Read the labels now rather than from the event payload. Dependabot adds its
+        # labels just after opening the PR, so the `opened` payload has none, and a
+        # re-run would replay that same empty payload.
         run: |
-          count=$(jq '[.[] | select(IN("release:major", "release:minor", "release:patch", "release:none"))] | length' <<< "$LABELS")
+          count=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" \
+            --jq '[.labels[].name | select(IN("release:major", "release:minor", "release:patch", "release:none"))] | length')
 
           if [ "$count" -ne 1 ]; then
             echo "::error::Add exactly one of the labels release:major, release:minor, release:patch or release:none."

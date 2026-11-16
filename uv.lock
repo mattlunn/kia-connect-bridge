@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12"
 
 [[package]]
@@ -248,7 +248,7 @@ wheels = [
 
 [[package]]
 name = "hyundai-kia-connect-api"
-version = "5.2.0"
+version = "5.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -257,9 +257,9 @@ dependencies = [
     { name = "requests" },
     { name = "tzdata" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/26/f3/a2838a4793d2042929766514e2c07df415aedebedf066a6c4b99997f67fc/hyundai_kia_connect_api-5.2.0.tar.gz", hash = "sha256:8c251dc929bddadca6b269fb4cc1dc26be69637a4c0c176db978c35012c40d81", size = 537909, upload-time = "2026-11-10T07:34:48.605Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/fd/7964ee7364cd77431c6b009bd7e89da06b57f55fd0dfd5ae04ba911ba789/hyundai_kia_connect_api-5.2.1.tar.gz", hash = "sha256:69bb0d80fbefb593b41105dd9b07e364f68e90d5af33f6f024101133624e21f7", size = 543500, upload-time = "2026-11-11T06:53:09.346Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/61/6558164e11ff9fc952a65d25d5d7504b1b0ee8531049a0818eaae2be8997/hyundai_kia_connect_api-5.2.0-py3-none-any.whl", hash = "sha256:59d92ed243401467a4bd9c7f356d51ff2cd06bf5a666acd884f9286d56ce8af6", size = 315824, upload-time = "2026-11-10T07:34:47.234Z" },
+    { url = "https://files.pythonhosted.org/packages/33/8a/e735cee1a30e1d23888e997763ae010386e6f393c3d22a8b07071d9d9f61/hyundai_kia_connect_api-5.2.1-py3-none-any.whl", hash = "sha256:a2a9d93e71590213b5fba461fcdc41a8de51417be39e41c500191a673b11219e", size = 316647, upload-time = "2026-11-11T06:53:07.946Z" },
 ]
 
 [[package]]
@@ -301,7 +301,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = "==0.162.5" },
-    { name = "hyundai-kia-connect-api", specifier = "==5.2.0" },
+    { name = "hyundai-kia-connect-api", specifier = "==5.2.1" },
     { name = "requests" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]
